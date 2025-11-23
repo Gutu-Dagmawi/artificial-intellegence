@@ -1,0 +1,13 @@
+# Route Search on OpenStreetMap - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+osmnx>=1.6.0
+networkx>=3.0
+matplotlib>=3.5.0
+scipy>=1.9.0
+Pillow>=9.0.0
+Scikit-learn>=1.5.2
+Tkinter>=8.6
+# Note: GDAL must be installed at the system level first
+# See README.md for installation instructions
