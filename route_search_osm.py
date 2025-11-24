@@ -12,13 +12,12 @@ Date: 2025-11-23
 Dependencies: osmnx, networkx, matplotlib, geopy
 """
 
-import osmnx as ox
-import networkx as nx
-import matplotlib.pyplot as plt
-from typing import List, Tuple, Optional, Dict, Set
-from collections import deque
 import heapq
 import math
+from collections import deque
+from typing import Dict, List, Optional, Tuple
+
+import osmnx as ox
 
 
 class RouteSearchSystem:
@@ -53,7 +52,7 @@ class RouteSearchSystem:
             # Project a copy for accurate distance calculations
             self.graph = ox.project_graph(self.graph_unprojected)
 
-            print(f"[OK] Graph projected to UTM for accurate distance calculations")
+            print("[OK] Graph projected to UTM for accurate distance calculations")
 
         except Exception as e:
             raise RuntimeError(f"Failed to load road network: {e}")
@@ -148,7 +147,6 @@ class RouteSearchSystem:
         """
         try:
             # Improve specificity by adding city/country if not present
-            search_query = location
             if "Addis Ababa" not in location and "Ethiopia" not in location:
                 # Try multiple query formats for better results
                 search_queries = [
@@ -179,7 +177,9 @@ class RouteSearchSystem:
             # Find nearest node in the UNPROJECTED graph (lat/lon coordinates)
             # This ensures we're comparing in the same coordinate system
             nearest_node = ox.distance.nearest_nodes(
-                self.graph_unprojected, lon, lat  # longitude  # latitude
+                self.graph_unprojected,
+                lon,
+                lat,  # longitude  # latitude
             )
 
             # Get the actual node coordinates from unprojected graph
@@ -200,7 +200,7 @@ class RouteSearchSystem:
             # Warn if the nearest node is very far from the geocoded point
             if distance > 1000:  # More than 1km away
                 print(
-                    f"   [WARNING] Nearest road is {distance:.0f}m ({distance/1000:.1f}km) from geocoded location"
+                    f"   [WARNING] Nearest road is {distance:.0f}m ({distance / 1000:.1f}km) from geocoded location"
                 )
                 print(f"      '{location}' might need to be more specific")
 
@@ -275,6 +275,7 @@ class RouteSearchSystem:
         except:
             return 0
 
+    # Algorithms
     def bfs_search(self, start: int, goal: int) -> Tuple[Optional[List[int]], Dict]:
         """
         Breadth-First Search (BFS) - Unweighted search algorithm.
@@ -471,7 +472,7 @@ class RouteSearchSystem:
 
         # No path found
         return None, {"nodes_explored": nodes_explored, "algorithm": "A*"}
-
+    # ======================
     def calculate_path_distance(self, path: List[int]) -> float:
         """
         Calculate total distance of a path.
@@ -514,7 +515,7 @@ class RouteSearchSystem:
         print("=" * 70)
 
         # Step 1: Geocode locations
-        print(f"\n[GEOCODING] Geocoding locations...")
+        print("\n[GEOCODING] Geocoding locations...")
         print()
 
         start_node = self.geocode_location(start_location, verbose=True)
@@ -535,9 +536,9 @@ class RouteSearchSystem:
         goal_coords = self.get_node_coordinates(goal_node)
         direct_distance = self.haversine_distance(start_node, goal_node)
 
-        print(f"\n[ROUTE] Route Overview:")
+        print("\n[ROUTE] Route Overview:")
         print(
-            f"   Direct distance: {direct_distance:.1f}m ({direct_distance/1000:.2f}km)"
+            f"   Direct distance: {direct_distance:.1f}m ({direct_distance / 1000:.2f}km)"
         )
 
         # Step 3: Check if already at destination
@@ -547,17 +548,17 @@ class RouteSearchSystem:
                 print(
                     f"\n[WARNING] Warning: '{start_location}' and '{goal_location}' geocoded to the same location!"
                 )
-                print(f"   This may mean:")
-                print(f"   • The locations are very close together")
-                print(f"   • The location names are too general")
+                print("   This may mean:")
+                print("   • The locations are very close together")
+                print("   • The location names are too general")
                 print(
-                    f"   • Try being more specific (e.g., add street names or landmarks)"
+                    "   • Try being more specific (e.g., add street names or landmarks)"
                 )
             print("\n[OK] You are already at the destination.")
             return {"error": "already_at_destination"}
 
         # Step 4: Run all algorithms
-        print(f"\n[SEARCH] Running search algorithms...")
+        print("\n[SEARCH] Running search algorithms...")
 
         results = {}
 
@@ -607,7 +608,7 @@ class RouteSearchSystem:
         for algo_name, data in results.items():
             print(f"\n{algo_name}:")
             print(
-                f"   Distance:        {data['distance']:.2f} meters ({data['distance']/1000:.2f} km)"
+                f"   Distance:        {data['distance']:.2f} meters ({data['distance'] / 1000:.2f} km)"
             )
             print(f"   Nodes explored:  {data['nodes_explored']}")
             print(f"   Path length:     {len(data['path'])} nodes")
@@ -622,7 +623,7 @@ class RouteSearchSystem:
 
         print("\n" + "-" * 70)
         print(
-            f"[OPTIMAL] Optimal path distance: {min_distance:.2f} meters ({min_distance/1000:.2f} km)"
+            f"[OPTIMAL] Optimal path distance: {min_distance:.2f} meters ({min_distance / 1000:.2f} km)"
         )
 
         if len(optimal_algorithms) > 1:
@@ -1008,6 +1009,100 @@ class RouteSearchSystem:
 
             traceback.print_exc()
 
+    def visualize_with_algorithm_selection(
+        self,
+        result: Dict,
+        start_location: str,
+        goal_location: str,
+    ):
+        """
+        Allow user to select which algorithm's path to visualize (UCS or A*).
+
+        Args:
+            result: Dictionary returned from search_route() containing all results
+            start_location: Name of starting location
+            goal_location: Name of destination location
+        """
+        # Check which optimal algorithms are available
+        optimal_algorithms = result.get("optimal_algorithms", [])
+        available_algorithms = result.get("results", {})
+
+        if not available_algorithms:
+            print("[ERROR] No algorithms available for visualization.")
+            return
+
+        # Filter to only UCS and A* (the optimal algorithms)
+        optimal_choices = [algo for algo in optimal_algorithms if algo in ["UCS", "A*"]]
+
+        if not optimal_choices:
+            print("[ERROR] No optimal algorithms (UCS/A*) found.")
+            return
+
+        # If only one optimal algorithm, visualize it directly
+        if len(optimal_choices) == 1:
+            algo = optimal_choices[0]
+            path = available_algorithms[algo]["path"]
+            distance_km = available_algorithms[algo]["distance"] / 1000
+            print(f"\n[VISUALIZATION] Visualizing optimal path using {algo}...")
+            self.visualize_route(
+                path,
+                algo,
+                start_location,
+                goal_location,
+                distance_km,
+            )
+            return
+
+        # Multiple optimal algorithms - let user choose
+        print("\n" + "=" * 70)
+        print("[ALGORITHM SELECTION] Multiple optimal algorithms found!")
+        print("=" * 70)
+
+        for i, algo in enumerate(optimal_choices, 1):
+            data = available_algorithms[algo]
+            distance_km = data["distance"] / 1000
+            nodes_explored = data["nodes_explored"]
+            print(f"\n{i}. {algo}")
+            print(f"   Distance: {distance_km:.2f} km")
+            print(f"   Nodes explored: {nodes_explored}")
+
+        print("\n0. Cancel")
+
+        # Get user choice
+        while True:
+            try:
+                choice = input(
+                    "\n[INPUT] Select algorithm to visualize (0-{}): ".format(
+                        len(optimal_choices)
+                    )
+                ).strip()
+                choice_idx = int(choice)
+
+                if choice_idx == 0:
+                    print("[CANCELLED] Visualization cancelled.")
+                    return
+
+                if 1 <= choice_idx <= len(optimal_choices):
+                    selected_algo = optimal_choices[choice_idx - 1]
+                    break
+                else:
+                    print(f"[ERROR] Please enter a number between 0 and {len(optimal_choices)}")
+            except ValueError:
+                print("[ERROR] Invalid input. Please enter a number.")
+
+        # Visualize selected algorithm
+        path = available_algorithms[selected_algo]["path"]
+        distance_km = available_algorithms[selected_algo]["distance"] / 1000
+
+        print(f"\n[VISUALIZATION] Visualizing {selected_algo} path...")
+        self.visualize_route(
+            path,
+            selected_algo,
+            start_location,
+            goal_location,
+            distance_km,
+        )
+
 
 def main():
     """
@@ -1066,24 +1161,18 @@ def main():
                 print("\n" + "=" * 70)
                 visualize = (
                     input(
-                        "\n[VISUALIZATION] Would you like to visualize the optimal route? (y/n): "
+                        "\n[VISUALIZATION] Would you like to visualize the route? (y/n): "
                     )
                     .strip()
                     .lower()
                 )
 
                 if visualize == "y":
-                    # Visualize the first optimal algorithm's path
-                    optimal_algo = result["optimal_algorithms"][0]
-                    optimal_path = result["results"][optimal_algo]["path"]
-                    optimal_distance_km = result["optimal_distance"] / 1000
-
-                    system.visualize_route(
-                        optimal_path,
-                        optimal_algo,
+                    # Use algorithm selection for visualization
+                    system.visualize_with_algorithm_selection(
+                        result,
                         start_location,
                         goal_location,
-                        optimal_distance_km,
                     )
 
                 print("\n[SUCCESS] Route search completed successfully!")

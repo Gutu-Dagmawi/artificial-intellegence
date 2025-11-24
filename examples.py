@@ -10,7 +10,7 @@ from route_search_osm import RouteSearchSystem
 def example_1_basic_usage():
     """Example 1: Basic route search with visualization."""
     print("\n" + "="*70)
-    print("EXAMPLE 1: Basic Usage with Enhanced Visualization")
+    print("EXAMPLE 1: Basic Usage with Algorithm Selection")
     print("="*70)
     
     # Initialize the system
@@ -28,22 +28,17 @@ def example_1_basic_usage():
     
     # Check if route was found
     if 'error' not in result:
-        # Get the optimal path
-        optimal_algo = result['optimal_algorithms'][0]
-        optimal_path = result['results'][optimal_algo]['path']
         distance_km = result['optimal_distance'] / 1000
         
-        print(f"\n✅ Route found! Using {optimal_algo} algorithm")
-        print(f"   Distance: {distance_km:.2f} km")
+        print(f"\n✅ Route found!")
+        print(f"   Optimal distance: {distance_km:.2f} km")
         
-        # Visualize with enhanced aesthetics
-        print("\n📊 Opening visualization...")
-        system.visualize_route(
-            optimal_path, 
-            optimal_algo,
+        # Visualize with algorithm selection
+        print("\n📊 Opening visualization with algorithm selection...")
+        system.visualize_with_algorithm_selection(
+            result,
             start_loc,
-            goal_loc,
-            distance_km
+            goal_loc
         )
 
 
